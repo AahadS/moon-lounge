@@ -2,24 +2,35 @@ import React from 'react';
 import { motion } from 'framer-motion';
 
 const StarryBackground = () => {
+  // Generate random stars
+  const stars = Array.from({ length: 100 }, (_, i) => ({
+    id: i,
+    size: Math.random() * 2,
+    x: Math.random() * 100,
+    y: Math.random() * 100,
+    duration: 1 + Math.random() * 3,
+    delay: Math.random() * 2,
+  }));
+
   return (
-    <div className="fixed inset-0 bg-black overflow-hidden">
-      {[...Array(100)].map((_, i) => (
+    <div className="fixed inset-0 overflow-hidden">
+      {stars.map((star) => (
         <motion.div
-          key={i}
-          className="absolute w-[2px] h-[2px] bg-white rounded-full"
-          initial={{ opacity: Math.random() }}
+          key={star.id}
+          className="absolute rounded-full bg-white"
+          style={{
+            width: star.size,
+            height: star.size,
+            left: `${star.x}%`,
+            top: `${star.y}%`,
+          }}
           animate={{
-            opacity: [Math.random() * 0.3, Math.random(), Math.random() * 0.3],
+            opacity: [0.2, 1, 0.2],
           }}
           transition={{
-            duration: Math.random() * 3 + 2,
+            duration: star.duration,
             repeat: Infinity,
-            repeatType: "reverse"
-          }}
-          style={{
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
+            delay: star.delay,
           }}
         />
       ))}

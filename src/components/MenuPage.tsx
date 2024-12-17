@@ -5,6 +5,8 @@ import toast from 'react-hot-toast';
 import Navbar from './Navbar';
 import StarryBackground from './StarryBackground';
 import * as Tooltip from '@radix-ui/react-tooltip';
+import CheckInModal from './ui/CheckInModal';
+import { Toaster } from 'react-hot-toast';
 
 interface FlavorQuantity {
   [key: string]: number;
@@ -39,21 +41,37 @@ interface OrderItem {
   }[];
 }
 
+// Add this interface to track which flavors belong to which shisha
+interface ShishaFlavors {
+  [shishaId: string]: {
+    [flavorName: string]: number;
+  };
+}
+
 const CartSummary = ({ 
   quantities, 
   shishaQuantities,
-  flavorCategories, 
-  updateQuantity 
+  shishaFlavors,
+  flavorCategories,
+  updateQuantity,
+  shishaTypes
 }: {
   quantities: FlavorQuantity;
   shishaQuantities: FlavorQuantity;
+  shishaFlavors: ShishaFlavors;
   flavorCategories: FlavorCategories;
-  updateQuantity: (name: string, increment: boolean) => void;
+  updateQuantity: (name: string, increment: boolean, shishaName: string) => void;
+  shishaTypes: ShishaType[];
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   
   const totalItems = Object.values(quantities).reduce((a, b) => a + b, 0);
   
+  const totalCost = Object.entries(shishaQuantities).reduce((total, [shishaName, quantity]) => {
+    const shisha = shishaTypes.find(s => s.name === shishaName);
+    return total + (shisha?.price || 0) * quantity;
+  }, 0);
+
   return (
     <motion.div
       initial={{ y: 100 }}
@@ -76,7 +94,10 @@ const CartSummary = ({
               </span>
             )}
           </div>
-          {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+          <div className="flex items-center gap-3">
+            <span className="text-white font-serif">${totalCost}</span>
+            {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+          </div>
         </button>
 
         <AnimatePresence>
@@ -88,50 +109,73 @@ const CartSummary = ({
               className="overflow-hidden"
             >
               <div className="p-3 space-y-4 max-h-[400px] overflow-y-auto">
-                {Object.entries(shishaQuantities).map(([shishaName, quantity]) => (
-                  <div key={shishaName} className="space-y-2">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        <img 
-                          src="/images/shishaicon.jpg" 
-                          alt="Shisha" 
-                          className="w-6 h-6 opacity-80"
-                        />
-                        <span className="text-white font-medium">{shishaName}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => updateQuantity(shishaName, false)}
-                          className="w-6 h-6 rounded-full bg-lounge-purple text-white flex items-center justify-center text-sm"
-                        >
-                          -
-                        </motion.button>
-                        <span className="text-white w-6 text-center">{quantity}</span>
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => updateQuantity(shishaName, true)}
-                          className="w-6 h-6 rounded-full bg-lounge-purple text-white flex items-center justify-center text-sm"
-                        >
-                          +
-                        </motion.button>
-                      </div>
-                    </div>
-                    {/* Selected flavors for this shisha */}
-                    <div className="pl-8 space-y-2">
-                      {Object.entries(quantities)
-                        .filter(([_, qty]) => qty > 0)
-                        .map(([flavorName, flavorQty]) => (
-                          <div key={flavorName} className="flex items-center justify-between gap-2">
-                            <span className="text-white/70 text-sm">{flavorName}</span>
-                            <span className="text-white/70 text-sm">x{flavorQty}</span>
+                {Object.entries(shishaQuantities).map(([shishaName, quantity]) => {
+                  const shisha = shishaTypes.find(s => s.name === shishaName);
+                  const flavorsForThisShisha = shishaFlavors[shishaName] || {};
+
+                  return (
+                    <div key={shishaName} className="space-y-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <img 
+                            src="/images/shishaicon.jpg" 
+                            alt="Shisha" 
+                            className="w-6 h-6 opacity-80"
+                          />
+                          <div>
+                            <span className="text-white font-medium">{shishaName}</span>
+                            <span className="text-lounge-purple text-sm ml-2">${shisha?.price || 0}</span>
                           </div>
-                        ))}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-1">
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updateQuantity(shishaName, false, shishaName);
+                              }}
+                              className="w-6 h-6 rounded-full bg-lounge-purple text-white flex items-center justify-center text-sm"
+                            >
+                              -
+                            </motion.button>
+                            <span className="text-white w-6 text-center">{quantity}</span>
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updateQuantity(shishaName, true, shishaName);
+                              }}
+                              className="w-6 h-6 rounded-full bg-lounge-purple text-white flex items-center justify-center text-sm"
+                            >
+                              +
+                            </motion.button>
+                          </div>
+                        </div>
+                      </div>
+                      {/* Updated flavors section */}
+                      <div className="pl-8 space-y-2">
+                        {Object.entries(flavorsForThisShisha)
+                          .filter(([_, qty]) => qty > 0)
+                          .map(([flavorName, flavorQty]) => (
+                            <div key={flavorName} className="flex items-center justify-between gap-2">
+                              <span className="text-white/70 text-sm">{flavorName}</span>
+                              <span className="text-white/70 text-sm">x{flavorQty}</span>
+                            </div>
+                          ))}
+                      </div>
                     </div>
+                  );
+                })}
+                
+                <div className="border-t border-lounge-purple/20 mt-4 pt-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-white font-serif">Total</span>
+                    <span className="text-white font-serif text-xl">${totalCost}</span>
                   </div>
-                ))}
+                </div>
               </div>
             </motion.div>
           )}
@@ -141,21 +185,128 @@ const CartSummary = ({
   );
 };
 
+const FeatureCard = ({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    whileHover={{ y: -5, scale: 1.02 }}
+    whileTap={{ y: -2 }}
+    className="bg-black/40 backdrop-blur-sm border border-lounge-purple/20 rounded-lg p-6 text-center"
+  >
+    <div className="text-lounge-purple mb-4 text-2xl">{icon}</div>
+    <h3 className="text-xl font-serif text-white mb-2">{title}</h3>
+    <p className="text-white/70 text-sm">{description}</p>
+  </motion.div>
+);
+
+const getTotalShishas = (shishaQuantities: FlavorQuantity): number => {
+  return Object.values(shishaQuantities).reduce((sum, quantity) => sum + quantity, 0);
+};
+
+const getTotalFlavors = (quantities: FlavorQuantity): number => {
+  return Object.values(quantities).reduce((sum, quantity) => sum + quantity, 0);
+};
+
 const MenuPage = ({ userName, onCheckOut }: MenuPageProps) => {
   const [quantities, setQuantities] = useState<FlavorQuantity>({});
   const [selectedShisha, setSelectedShisha] = useState<string>('');
   const [shishaQuantities, setShishaQuantities] = useState<FlavorQuantity>({});
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [shishaFlavors, setShishaFlavors] = useState<ShishaFlavors>({});
 
-  const updateQuantity = (flavorName: string, increment: boolean) => {
-    setQuantities(prev => {
-      const newQuantity = Math.max(0, (prev[flavorName] || 0) + (increment ? 1 : -1));
-      return newQuantity === 0 ? 
-        (({ [flavorName]: _, ...rest }) => rest)(prev) : 
-        { ...prev, [flavorName]: newQuantity };
+  const handleModalOpen = () => {
+    setIsModalOpen(true);
+  };
+
+  const updateQuantity = (flavorName: string, increment: boolean, shishaName: string) => {
+    // Check if any shisha is selected first
+    const totalShishas = getTotalShishas(shishaQuantities);
+    if (increment && totalShishas === 0) {
+      toast.error('Please select your type of Shisha first', {
+        icon: '💫',
+        style: {
+          background: '#1a1a1a',
+          color: '#fff',
+          border: '1px solid rgba(139, 92, 246, 0.3)',
+        },
+      });
+      return;
+    }
+
+    // Get total flavors for this specific shisha
+    const currentShishaFlavors = shishaFlavors[shishaName] || {};
+    const totalFlavorsForShisha = Object.values(currentShishaFlavors).reduce((sum, qty) => sum + qty, 0);
+    const shishaQuantity = shishaQuantities[shishaName] || 0;
+
+    // Check if we can add more flavors to this shisha (1:1 ratio)
+    if (increment && totalFlavorsForShisha >= shishaQuantity) {
+      toast.error('Please add another shisha before adding more flavors', {
+        icon: '💫',
+        style: {
+          background: '#1a1a1a',
+          color: '#fff',
+          border: '1px solid rgba(139, 92, 246, 0.3)',
+        },
+      });
+      return;
+    }
+
+    setShishaFlavors(prev => {
+      const shishaFlavorsCopy = { ...prev };
+      if (!shishaFlavorsCopy[shishaName]) {
+        shishaFlavorsCopy[shishaName] = {};
+      }
+
+      if (increment) {
+        shishaFlavorsCopy[shishaName][flavorName] = 1;
+        toast.success(`Added ${flavorName} flavor`, {
+          icon: '🌿',
+          style: {
+            background: '#1a1a1a',
+            color: '#fff',
+            border: '1px solid rgba(139, 92, 246, 0.3)',
+          },
+        });
+      } else {
+        delete shishaFlavorsCopy[shishaName][flavorName];
+        if (Object.keys(shishaFlavorsCopy[shishaName]).length === 0) {
+          delete shishaFlavorsCopy[shishaName];
+        }
+        toast.error(`Removed ${flavorName} flavor`, {
+          icon: '💨',
+          style: {
+            background: '#1a1a1a',
+            color: '#fff',
+            border: '1px solid rgba(139, 92, 246, 0.3)',
+          },
+        });
+      }
+
+      return shishaFlavorsCopy;
     });
   };
 
   const updateShishaQuantity = (shishaName: string, increment: boolean) => {
+    if (increment) {
+      setSelectedShisha(shishaName);
+    }
+    
+    if (!increment) {
+      // When decreasing shisha, check if we need to remove flavors
+      const currentShishaQuantity = shishaQuantities[shishaName] || 0;
+      if (currentShishaQuantity === 1) {
+        // If this was the selected shisha, clear the selection
+        if (selectedShisha === shishaName) {
+          setSelectedShisha('');
+        }
+        // Remove all flavors for this shisha
+        setShishaFlavors(prev => {
+          const { [shishaName]: _, ...rest } = prev;
+          return rest;
+        });
+      }
+    }
+
     setShishaQuantities(prev => {
       const newQuantity = Math.max(0, (prev[shishaName] || 0) + (increment ? 1 : -1));
       
@@ -170,7 +321,7 @@ const MenuPage = ({ userName, onCheckOut }: MenuPageProps) => {
         });
       } else if (prev[shishaName] > 0) {
         toast.error(`Removed ${shishaName} from your order`, {
-          icon: '',
+          icon: '💫',
           style: {
             background: '#1a1a1a',
             color: '#fff',
@@ -288,17 +439,23 @@ const MenuPage = ({ userName, onCheckOut }: MenuPageProps) => {
     }
   ];
 
+  const handleCheckIn = (name: string, phone: string) => {
+    // Handle check-in logic here
+    setIsModalOpen(false);
+  };
+
   return (
     <>
-      <div className="fixed inset-0 z-0 bg-black">
+      <div className="fixed inset-0 z-0">
         <StarryBackground />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/50 to-black" />
       </div>
       <div className="relative z-10">
         <Navbar isCheckedIn onCheckOut={onCheckOut} />
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="min-h-screen bg-black/50 backdrop-blur-sm text-white py-20 px-4"
+          className="min-h-screen text-white py-20 px-4"
         >
           <div className="max-w-7xl mx-auto">
             <motion.div
@@ -307,21 +464,22 @@ const MenuPage = ({ userName, onCheckOut }: MenuPageProps) => {
               transition={{ delay: 0.2 }}
               className="text-center mb-16"
             >
-              <h1 className="text-4xl md:text-5xl font-serif mb-6 text-white font-bold">
+              <h1 className="text-5xl md:text-6xl font-serif mb-4 text-white">
                 {getGreeting()}, {userName}
               </h1>
-              <h2 className="text-2xl md:text-3xl font-serif text-lounge-purple font-semibold">
+              <p className="text-xl md:text-2xl text-lounge-purple">
                 How would you like to relax today?
-              </h2>
+              </p>
             </motion.div>
 
+            {/* Shisha Types Section */}
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.1 }}
               className="mb-20"
             >
-              <h2 className="text-2xl md:text-3xl font-serif text-white text-center mb-12 font-semibold">
+              <h2 className="text-4xl md:text-5xl font-serif text-white text-center mb-12">
                 What type of Shisha are you feeling?
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -329,52 +487,47 @@ const MenuPage = ({ userName, onCheckOut }: MenuPageProps) => {
                   <motion.div
                     key={shisha.name}
                     whileHover={{ y: -5 }}
-                    onClick={() => updateShishaQuantity(shisha.name, true)}
-                    className="bg-black/80 backdrop-blur-md border border-lounge-purple/20 rounded-lg p-6 shadow-lg relative group cursor-pointer"
+                    whileTap={{ y: -2 }}
+                    className="bg-black/80 backdrop-blur-md border border-lounge-purple/20 rounded-lg p-6 shadow-lg relative group"
                   >
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-xl font-serif text-white font-medium">
-                          {shisha.name}
-                        </h3>
-                        {shisha.features && (
-                          <Tooltip.Provider>
-                            <Tooltip.Root>
-                              <Tooltip.Trigger asChild>
-                                <button type="button" className="cursor-help focus:outline-none">
-                                  <Info className="w-4 h-4 text-lounge-purple hover:text-lounge-purple/80 transition-colors" />
-                                </button>
-                              </Tooltip.Trigger>
-                              <Tooltip.Content
-                                className="bg-black/90 backdrop-blur-md border border-lounge-purple/30 rounded-md p-3 text-sm text-white max-w-xs shadow-lg animate-in fade-in-0 zoom-in-95"
-                                side="bottom"
-                                align="start"
-                                sideOffset={5}
-                              >
-                                <ul className="space-y-1">
-                                  {shisha.features.map((feature, index) => (
-                                    <li key={index} className="flex items-center gap-2">
-                                      <span className="text-lounge-purple">•</span>
-                                      {feature}
-                                    </li>
-                                  ))}
-                                </ul>
-                                <Tooltip.Arrow 
-                                  className="fill-black/90" 
-                                  width={11} 
-                                  height={5} 
-                                />
-                              </Tooltip.Content>
-                            </Tooltip.Root>
-                          </Tooltip.Provider>
-                        )}
-                      </div>
-                      <span className="text-2xl font-serif text-lounge-purple font-semibold">
-                        ${shisha.price}
-                      </span>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-2xl font-serif text-white">
+                        {shisha.name}
+                      </h3>
+                      {shisha.features && (
+                        <Tooltip.Provider>
+                          <Tooltip.Root>
+                            <Tooltip.Trigger asChild>
+                              <button className="cursor-help">
+                                <Info className="w-4 h-4 text-lounge-purple hover:text-lounge-purple/80 transition-colors" />
+                              </button>
+                            </Tooltip.Trigger>
+                            <Tooltip.Content
+                              className="bg-black/90 backdrop-blur-md border border-lounge-purple/30 rounded-md p-3 text-sm text-white max-w-xs shadow-lg"
+                              side="bottom"
+                              align="start"
+                              sideOffset={5}
+                            >
+                              <ul className="space-y-1">
+                                {shisha.features.map((feature, index) => (
+                                  <li key={index} className="flex items-center gap-2">
+                                    <span className="text-lounge-purple">•</span>
+                                    {feature}
+                                  </li>
+                                ))}
+                              </ul>
+                              <Tooltip.Arrow className="fill-black/90" width={11} height={5} />
+                            </Tooltip.Content>
+                          </Tooltip.Root>
+                        </Tooltip.Provider>
+                      )}
                     </div>
+                    <p className="text-lounge-purple text-right font-serif text-xl">
+                      ${shisha.price}
+                    </p>
                     
-                    {shishaQuantities[shisha.name] && (
+                    {/* Quantity Controls */}
+                    {shishaQuantities[shisha.name] ? (
                       <div className="flex items-center justify-end gap-2 mt-4">
                         <motion.button
                           whileHover={{ scale: 1.1 }}
@@ -402,83 +555,110 @@ const MenuPage = ({ userName, onCheckOut }: MenuPageProps) => {
                           +
                         </motion.button>
                       </div>
+                    ) : (
+                      <motion.button
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateShishaQuantity(shisha.name, true);
+                        }}
+                        className="absolute top-4 right-4 w-8 h-8 rounded-full bg-lounge-purple text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        +1
+                      </motion.button>
                     )}
                   </motion.div>
                 ))}
               </div>
             </motion.div>
 
-            {Object.entries(flavorCategories).map(([category, flavors], categoryIndex) => (
-              <motion.div
-                key={category}
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: categoryIndex * 0.1 }}
-                className="mb-16"
-              >
-                <h3 className="text-3xl font-serif text-white capitalize mb-8 font-semibold">
-                  {category} Collection
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {flavors.map((flavor) => (
-                    <motion.div
-                      key={flavor.name}
-                      whileHover={{ y: -5 }}
-                      className="bg-black/80 backdrop-blur-md border border-lounge-purple/20 rounded-lg p-6 shadow-lg relative group"
-                    >
-                      <h4 className="text-2xl font-serif mb-3 text-white font-medium">
-                        {flavor.name}
-                      </h4>
-                      <p className="text-white/80 text-base">
-                        {flavor.description}
-                      </p>
-                      
-                      {quantities[flavor.name] ? (
-                        <div className="flex items-center justify-end gap-2 mt-4">
+            {/* Flavors Section */}
+            <div className="space-y-20">
+              {Object.entries(flavorCategories).map(([category, flavors], categoryIndex) => (
+                <motion.div
+                  key={category}
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.2 + categoryIndex * 0.1 }}
+                >
+                  <h2 className="text-2xl md:text-3xl font-serif text-white text-center mb-8 capitalize">
+                    {category} Collection
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {flavors.map((flavor) => (
+                      <motion.div
+                        key={flavor.name}
+                        whileHover={{ y: -5 }}
+                        whileTap={{ y: -2 }}
+                        className="bg-black/80 backdrop-blur-md border border-lounge-purple/20 rounded-lg p-6 shadow-lg relative group"
+                      >
+                        <h4 className="text-2xl font-serif text-white mb-3">{flavor.name}</h4>
+                        <p className="text-white/70">{flavor.description}</p>
+                        {quantities[flavor.name] ? (
+                          <div className="flex items-center justify-end gap-2 mt-4">
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => updateQuantity(flavor.name, false, selectedShisha)}
+                              className="w-8 h-8 rounded-full bg-lounge-purple text-white flex items-center justify-center"
+                            >
+                              -
+                            </motion.button>
+                            <span className="text-white font-medium w-8 text-center">
+                              {quantities[flavor.name]}
+                            </span>
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => updateQuantity(flavor.name, true, selectedShisha)}
+                              className="w-8 h-8 rounded-full bg-lounge-purple text-white flex items-center justify-center"
+                            >
+                              +
+                            </motion.button>
+                          </div>
+                        ) : (
                           <motion.button
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.95 }}
-                            onClick={() => updateQuantity(flavor.name, false)}
-                            className="w-8 h-8 rounded-full bg-lounge-purple text-white flex items-center justify-center"
+                            onClick={() => {
+                              if (!selectedShisha) {
+                                toast.error('Please select a shisha first', {
+                                  icon: '💫',
+                                  style: {
+                                    background: '#1a1a1a',
+                                    color: '#fff',
+                                    border: '1px solid rgba(139, 92, 246, 0.3)',
+                                  },
+                                });
+                                return;
+                              }
+                              updateQuantity(flavor.name, true, selectedShisha);
+                            }}
+                            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-lounge-purple text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                           >
-                            -
+                            +1
                           </motion.button>
-                          <span className="text-white font-medium w-8 text-center">
-                            {quantities[flavor.name]}
-                          </span>
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => updateQuantity(flavor.name, true)}
-                            className="w-8 h-8 rounded-full bg-lounge-purple text-white flex items-center justify-center"
-                          >
-                            +
-                          </motion.button>
-                        </div>
-                      ) : (
-                        <motion.button
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => updateQuantity(flavor.name, true)}
-                          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-lounge-purple text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          +1
-                        </motion.button>
-                      )}
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-            ))}
+                        )}
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           </div>
         </motion.div>
         <CartSummary 
           quantities={quantities} 
           shishaQuantities={shishaQuantities}
+          shishaFlavors={shishaFlavors}
           flavorCategories={flavorCategories}
           updateQuantity={updateQuantity}
+          shishaTypes={shishaTypes}
         />
       </div>
     </>

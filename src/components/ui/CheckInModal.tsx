@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { X } from 'lucide-react';
 
 interface CheckInModalProps {
   isOpen: boolean;
@@ -154,26 +155,34 @@ const CheckInModal = ({ isOpen, onClose, onSubmit }: CheckInModalProps) => {
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 min-h-screen">
+          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             onClick={onClose}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm"
           />
+          
+          {/* Modal Content */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="relative w-full max-w-md mx-4"
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            className="relative w-full max-w-md bg-black/90 border border-lounge-purple/30 rounded-lg p-8 shadow-xl z-10"
           >
-            <div className="glass-card p-8">
-              <h2 className="text-3xl font-serif text-white mb-8 text-center">
-                {step === 'details' ? 'Check In' : 'Verify Your Number'}
-              </h2>
-              {step === 'details' ? renderDetailsForm() : renderVerificationForm()}
-            </div>
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 text-white/60 hover:text-white transition-colors"
+            >
+              <X size={20} />
+            </button>
+            
+            <h2 className="text-3xl font-serif text-white mb-8 text-center">
+              {step === 'details' ? 'Check In' : 'Verify Your Number'}
+            </h2>
+            {step === 'details' ? renderDetailsForm() : renderVerificationForm()}
           </motion.div>
         </div>
       )}

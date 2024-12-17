@@ -24,18 +24,37 @@ function App() {
 
   if (isCheckedIn) {
     return (
-      <div className="relative min-h-screen overflow-hidden bg-black">
-        <StarryBackground />
-        <div className="relative z-10">
-          <MenuPage userName={userName} onCheckOut={handleCheckOut} />
+      <>
+        <Toaster 
+          position="bottom-center"
+          containerStyle={{
+            bottom: 40,
+          }}
+          toastOptions={{
+            duration: 2000,
+            style: {
+              background: '#1a1a1a',
+              color: '#fff',
+              border: '1px solid rgba(139, 92, 246, 0.3)',
+            },
+          }}
+          reverseOrder={false}
+          gutter={8}
+          containerClassName="!bottom-4"
+          limit={3}
+        />
+        <div className="relative min-h-screen overflow-hidden bg-black">
+          <StarryBackground />
+          <div className="relative z-10">
+            <MenuPage userName={userName} onCheckOut={handleCheckOut} />
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
     <>
-      <Toaster position="top-center" />
       <div className="relative min-h-screen overflow-hidden bg-black">
         <StarryBackground />
         <Navbar onCheckIn={handleCheckIn} />
