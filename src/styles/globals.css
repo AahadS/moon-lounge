@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 1; }
+}
+
+.animate-twinkle {
+  animation: twinkle 3s infinite;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  transition: transform 0.3s ease;
+}
+
+.glass-card:hover {
+  transform: translateY(-5px);
+}
+
+body {
+  background: linear-gradient(to bottom, #000000, #0a0a1a);
+}
+
+/* Floating Animation */
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+  }
+  
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  /* Smoke Animation */
+  @keyframes smoke {
+    0% { transform: translateY(0); opacity: 0.5; }
+    100% { transform: translateY(-100%); opacity: 0; }
+  }
+  
+  .animate-smoke {
+    animation: smoke 10s linear infinite;
+  }
+  
+  /* Stars Background */
+  .bg-stars {
+    background: url("https://www.transparenttextures.com/patterns/stardust.png");
+    opacity: 0.8;
+  }
+  
