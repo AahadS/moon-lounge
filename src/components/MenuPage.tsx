@@ -134,7 +134,6 @@ const CartSummary = ({
                               whileTap={{ scale: 0.95 }}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                updateQuantity(shishaName, false, shishaName);
                               }}
                               className="w-6 h-6 rounded-full bg-lounge-purple text-white flex items-center justify-center text-sm"
                             >
@@ -146,7 +145,6 @@ const CartSummary = ({
                               whileTap={{ scale: 0.95 }}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                updateQuantity(shishaName, true, shishaName);
                               }}
                               className="w-6 h-6 rounded-full bg-lounge-purple text-white flex items-center justify-center text-sm"
                             >
@@ -292,14 +290,11 @@ const MenuPage = ({ userName, onCheckOut }: MenuPageProps) => {
     }
     
     if (!increment) {
-      // When decreasing shisha, check if we need to remove flavors
       const currentShishaQuantity = shishaQuantities[shishaName] || 0;
       if (currentShishaQuantity === 1) {
-        // If this was the selected shisha, clear the selection
         if (selectedShisha === shishaName) {
           setSelectedShisha('');
         }
-        // Remove all flavors for this shisha
         setShishaFlavors(prev => {
           const { [shishaName]: _, ...rest } = prev;
           return rest;
@@ -310,33 +305,32 @@ const MenuPage = ({ userName, onCheckOut }: MenuPageProps) => {
     setShishaQuantities(prev => {
       const newQuantity = Math.max(0, (prev[shishaName] || 0) + (increment ? 1 : -1));
       
-      if (increment) {
-        toast.success(`Added ${shishaName} to your order`, {
-          icon: '🌟',
-          style: {
-            background: '#1a1a1a',
-            color: '#fff',
-            border: '1px solid rgba(139, 92, 246, 0.3)',
-          },
-        });
-      } else if (prev[shishaName] > 0) {
-        toast.error(`Removed ${shishaName} from your order`, {
-          icon: '💫',
-          style: {
-            background: '#1a1a1a',
-            color: '#fff',
-            border: '1px solid rgba(139, 92, 246, 0.3)',
-          },
-        });
-      }
-
+      const { [shishaName]: _, ...rest } = prev;
       if (newQuantity === 0) {
-        const { [shishaName]: _, ...rest } = prev;
         return rest;
       }
-      
       return { ...prev, [shishaName]: newQuantity };
     });
+
+    if (increment) {
+      toast.success(`Added ${shishaName} to your order`, {
+        icon: '🌟',
+        style: {
+          background: '#1a1a1a',
+          color: '#fff',
+          border: '1px solid rgba(139, 92, 246, 0.3)',
+        },
+      });
+    } else if (shishaQuantities[shishaName] > 0) {
+      toast.error(`Removed ${shishaName} from your order`, {
+        icon: '💫',
+        style: {
+          background: '#1a1a1a',
+          color: '#fff',
+          border: '1px solid rgba(139, 92, 246, 0.3)',
+        },
+      });
+    }
   };
 
   const getGreeting = () => {
