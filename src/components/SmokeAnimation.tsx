@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-const SmokeAnimation = () => {
+export default function SmokeAnimation() {
   return (
     <div className="relative w-full h-40 overflow-hidden">
       {[...Array(5)].map((_, i) => (
@@ -25,6 +25,4 @@ const SmokeAnimation = () => {
       ))}
     </div>
   );
-};
-
-export default SmokeAnimation; 
+} 
